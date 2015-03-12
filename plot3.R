@@ -2,6 +2,8 @@
 
 plot3 <- function(){
   library(reshape2)
+  library(ggplot2)
+  
   
   ## Read file saved in working directory
   NEI <- readRDS("./summarySCC_PM25.rds")
