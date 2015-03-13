@@ -6,19 +6,20 @@ plot4 <- function(){
 
   ## Read file from working directory
   NEI <- readRDS("./summarySCC_PM25.rds")
-  SCC <- readRDS("Source_Classification_Code.rds")
+  SCC_ds <- readRDS("Source_Classification_Code.rds")
     
   ## Select coal combustion sources
-  SCC_coal <- SCC %>% filter(grep("Comb(.)*Coal",SCC$Short.Name)) %>% select(SCC)
+  SCC_coal <- SCC_ds %>% filter(grepl("Comb(.)*Coal",SCC$Short.Name)) %>% select(SCC)
   
   ## Calculate vars
-  df <- NEI %>% filter(SCC %in% SCC_coal) %>% group_by(year) %>% summarize(emissions = Emissions)
+  df <- NEI %>% filter(SCC %in% SCC_coal$SCC) %>% group_by(year) %>% 
+    summarize(emissions = sum(Emissions))
  
   ## Plotting
   png(file = "./plot4_v02.png")
-  with (df, plot(years, df, type = "b", 
-                 xlab = "Year", ylab = "PM2.5 (in tons)",
-                 main = "Total PM2.5 emissions from coal combustion-related 
-                 sources accross the US"))
+  with (df, plot(year, emissions, type = "b", 
+             xlab = "Year", ylab = "PM2.5 (in tons)",
+             main = "Total PM2.5 emissions from coal combustion-related 
+             sources accross the US"))
   dev.off()
 }
