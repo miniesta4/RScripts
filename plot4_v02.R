@@ -9,7 +9,7 @@ plot4 <- function(){
   SCC_ds <- readRDS("Source_Classification_Code.rds")
     
   ## Select coal combustion sources
-  SCC_coal <- SCC_ds %>% filter(grepl("Comb(.)*Coal",SCC$Short.Name)) %>% select(SCC)
+  SCC_coal <- SCC_ds %>% filter(grepl("Comb(.)*Coal",SCC_ds$Short.Name)) %>% select(SCC)
   
   ## Calculate vars
   df <- NEI %>% filter(SCC %in% SCC_coal$SCC) %>% group_by(year) %>% 
