@@ -5,7 +5,7 @@ plot2 <- function(){
   library(dplyr)
   
   ## Read file from working directory
-  NEI <- readRDS("./summarySCC_PM25.rds")
+  if (!exists("NEI")) NEI <- readRDS("./summarySCC_PM25.rds")
   
   ## Calculate vars  
   df <- NEI %>% filter(fips == "24510") %>% group_by(year) %>%  

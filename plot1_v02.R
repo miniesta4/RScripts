@@ -5,7 +5,7 @@ plot1 <- function(){
   library(dplyr)
 
   ## Read file from working directory
-  NEI <- readRDS("./summarySCC_PM25.rds")
+  if (!exists("NEI")) NEI <- readRDS("./summarySCC_PM25.rds")
   
   ## Calculate vars
   df <- NEI %>% group_by(year) %>% summarize(emissions = sum(Emissions))

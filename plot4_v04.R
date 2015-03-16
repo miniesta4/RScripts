@@ -1,6 +1,6 @@
-## v01 15-3-2015
+## v04 16-3-2015
 
-plot5 <- function(){
+plot4 <- function(){
   
   library(dplyr)
   library(ggplot2)
@@ -9,17 +9,16 @@ plot5 <- function(){
   if (!exists("NEI")) NEI <- readRDS("./summarySCC_PM25.rds")
   if (!exists("SCC_ds")) SCC_ds <- readRDS("Source_Classification_Code.rds")
     
-  ## Select motor vehicle sources
-  SCC_coal <- SCC_ds %>% filter(grepl("vehicle", tolower(SCC_ds$SCC.Level.Two))) %>%
-      select(SCC)
+  ## Select coal combustion sources
+  SCC_coal <- SCC_ds %>% filter(grepl("comb(.)*coal|coal(.)*comb",tolower(SCC_ds$Short.Name))) %>% select(SCC)
   
   ## Calculate vars
-  df <- NEI %>% filter(fips == "24510", SCC %in% SCC_coal$SCC) %>% group_by(year) %>% 
+  df <- NEI %>% filter(SCC %in% SCC_coal$SCC) %>% group_by(year) %>% 
     summarize(PM2.5_emissions = sum(Emissions))
  
   ## Plotting
   g <- qplot(year, PM2.5_emissions, data = df, geom = c("point", "line"))
-  png(file = "./plot5_v01.png")
+  png(file = "./plot4_v04.png")
   print(g)
   dev.off()
 }
