@@ -16,15 +16,13 @@ plot6 <- function(){
     group_by(year, fips) %>% 
     summarize(emissions = sum(Emissions)) %>%
     mutate(US_county = factor(fips, labels = c("Los Angeles County", "Baltimore City")))
-  
-  df_p <- df %>% group_by(fips) %>% mutate(emissions.pcj = (emissions - emissions[1]) / emissions[1])
  
   ## Plotting
-  g <- qplot(year, emissions.pcj, data = df_p, color = US_county,
+  g <- qplot(year, emissions, data = df, color = US_county,
              geom = c("point", "line"),
              main = "Emissions from motor vehicle sources",
-             ylab = "PM2.5 (variation %)")
-  png(file = "./plot6_v02.png")
+             ylab = "PM2.5 (in tons)")
+  png(file = "./plot6_v01.png")
   print(g)
   dev.off()
 }
