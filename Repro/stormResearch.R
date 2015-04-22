@@ -1,4 +1,4 @@
-StormResearch <- function(){}
+stormResearch <- function(){}
 
 ## Get file
 
@@ -9,13 +9,20 @@ if !file.exists ("./files/StormData.bz2"){
 
 dateDownloaded <- date()
 
-if (!data) {
-    data5r <- read.csv("./files/StormData.bz2", stringsAsFactors = FALSE, na.strings = "", nrow = 5)
-    classes <- sapply(data5r, class)
-    data <- read.csv("./files/StormData.bz2", stringsAsFactors = FALSE, na.strings = "", colClasses = classes)
+if (!ds) {
+    ds <- read.csv("../files/StormData.bz2", stringsAsFactors = FALSE, na.strings = "")
 }
-dim(data)
-summary(data)
-names(data)
-sapply(data, function(x) mean(is.na(x)))
-
+dim(ds)
+summary(ds)
+names(ds)
+colSums(is.na(ds))
+round(sapply(ds, function(x) mean(is.na(x))), 2)
+ag <- aggregate(cbind(FATALITIES, INJURIES) ~ EVTYPE, data = ds, sum)
+ago <- ag[order(ag$FATALITIES, ag$INJURIES, decreasing = TRUE), ]
+ago$fat.prop <- round(ago$FATALITIES/sum(ago$FATALITIES), 2)
+ago$inj.prop <- round(ago$INJURIES/sum(ago$INJURIES), 2)
+agor <- ago[ago$fat.prop >= 0.05 | ago$inj.prop >= 0.05, ]
+events <- unique(agor$EVTYPE)
+ds_f <- ds[ds$EVTYPE %in% events, c("EVTYPE", "FATALITIES", "INJURIES"), ]
+ds_f0 <- ds_f[ds_f$FATALITIES > 0 | ds_f$INJURIES > 0, ]
+qplot(log(INJURIES), log(FATALITIES), data = ds_f0, colour = EVTYPE)
