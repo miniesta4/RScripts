@@ -1,4 +1,4 @@
-stormResearch <- function(){}
+stormResearch <- function(){
 
 ## Get file
 
@@ -26,3 +26,4 @@ events <- unique(agor$EVTYPE)
 ds_f <- ds[ds$EVTYPE %in% events, c("EVTYPE", "FATALITIES", "INJURIES"), ]
 ds_f0 <- ds_f[ds_f$FATALITIES > 0 | ds_f$INJURIES > 0, ]
 qplot(log(INJURIES), log(FATALITIES), data = ds_f0, colour = EVTYPE)
+}
