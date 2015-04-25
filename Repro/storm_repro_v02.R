@@ -5,7 +5,7 @@ library(dplyr)
 library(ggplot2)
 
 ## Download file
-if !file.exists ("./files/StormData.bz2"){
+if (!file.exists ("./files/StormData.bz2")){
     fileUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
     download.file(fileUrl, destfile = "./files/StormData.bz2", method = "wget")
 }
@@ -13,28 +13,52 @@ if !file.exists ("./files/StormData.bz2"){
 dateDownloaded <- date()
 
 ## Read file
-if (!ds) {
+if (!exists("ds")){
     ds <- read.csv("../files/StormData.bz2", stringsAsFactors = FALSE, na.strings = "")
 }
 dim(ds)
-summary(ds)
-names(ds)
+str(ds)
+
 colSums(is.na(ds))
 round(sapply(ds, function(x) mean(is.na(x))), 2)
 
+ds$begin.date <- as.Date(ds$BGN_DATE, "%m/%d/%Y")
+summary(ds$begin.date)
+summary(ds$begin.date[ds$begin.date > 1995-04-20])
+sort(ds$begin.date[ds$begin.date > 1995-04-20])
+
 ## EVTYPE cleaning
+table(ds$EVTYPE)
+unique(ds$EVTYPE)
 length(unique(ds$EVTYPE))
-ds$evt <- toupper (ds$EVTYPE)
+str(as.factor(ds$EVTYPE))
+summary(as.factor(ds$EVTYPE))
+
+
+
+ds$evt <-ds$evt <- toupper (ds$EVTYPE)
 ds$evt <- gsub("^ *| *$", "", ds$evt)
 ds$evt <- gsub(" {2,}", " ", ds$evt)
 ds$evt <- gsub(" /|/ ", "", ds$evt)
+ds$evt <- gsub("COLD$", "COLD/WIND CHILL", ds$evt)
+ds$evt <- gsub("^FLOOD(.)+", "FLOOD", ds$evt)
+ds$evt <- gsub("^HEAT(.)+", "HEAT", ds$evt)
+ds$evt <- gsub("^HIGH WIND(.)+", "HIGH WIND", ds$evt)
+ds$evt <- gsub("HURRICANE(.)*", "HURRICANE (TYPHOON)", ds$evt)
+ds$evt <- gsub("^MARINE TSTM(.)*", "MARINE THUNDERSTORM WIND", ds$evt)
 ds$evt <- gsub("^THUNDERSTORM(.)+", "THUNDERSTORM WIND", ds$evt)
-ds$evt <- gsub("^WINTER WEATHER(.)+", "WINTER WEATER", ds$evt)
-ds$evt[ds$EVTYPE == "EXTREME COLD"] <- "EXTREME COLD/WIND CHILL"
-ds$evt[ds$EVTYPE == "TSTM WIND"] <- "THUNDERSTORM WIND"
-ds$evt[ds$EVTYPE == "HEAT WAVE"] <- "HEAT"
+ds$evt <- gsub("^TSTM WIND(.)*", "THUNDERSTORM WIND", ds$evt)
+ds$evt <- gsub("^URBAN", "FLOOD", ds$evt)
+ds$evt <- gsub("^WILD/(.)+", "WILDFIRE", ds$evt)
+ds$evt <- gsub("^WINTER WEATHER(.)+", "WINTER WEATHER", ds$evt)
+
 
 length(unique(ds$evt))
+
+min_freq <- dim(ds)[1] * 0.001
+evt_freq <- tapply(ds$evt, ds$evt, length)
+events <- names(evt_freq[evt_freq > min_freq])
+
 
 event_table <- toupper( c("Astronomical Low Tide", "Avalanche", "Blizzard", "Coastal Flood", "Cold/Wind Chill", 
                           "Debris Flow", "Dense Fog", "Dense Smoke", "Drought", "Dust Devil", "Dust Storm", 
@@ -48,7 +72,7 @@ event_table <- toupper( c("Astronomical Low Tide", "Avalanche", "Blizzard", "Coa
 
 table(ds$evt %in% event_table)
 
-ds <- ds[ds$evt %in% event_table, c("evt", "FATALITIES", "INJURIES", "PROPDMG", 
+ds1 <- ds[ds$evt %in% event_table, c("evt", "FATALITIES", "INJURIES", "PROPDMG", 
                                     "PROPDMGEXP", "CROPDMG", "CROPDMGEXP")]
 
 
@@ -56,7 +80,7 @@ ds <- ds[ds$evt %in% event_table, c("evt", "FATALITIES", "INJURIES", "PROPDMG",
 ## Injuries and fatalities
 ###########
 
-## Select evtype caused injuries and fatalities
+## Select evtypes caused injuries and fatalities
 ds1 <- ds %>% select(evt, INJURIES, FATALITIES) %>% filter(INJURIES > 0 | FATALITIES > 0)
 
 ## Diferent event types
