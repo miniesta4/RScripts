@@ -1,0 +1,181 @@
+---
+title: "Types of storm and severe weather events most harmful and damaging across the US"
+author: "miniesta4"
+date: "23/04/2015"
+output: html_document
+keep_md: true
+---
+
+## Synopsis
+This document is aimed to identify which types of storm and severe weather events are most harmful to public health and which types have the greatest economic consequences.
+
+The analysis explores the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including place, date and estimates of any fatalities, injuries and property damage.
+
+Documentation of the data base is available:  
+1. [NATIONAL WEATHER SERVICE INSTRUCTION 1-1605](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd0116005curr.pdf)  
+2. [Storm Data FAQ Page](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf)
+
+Instruction 1-165, issued on August 17, 2007, contains the updated events type table among some other useful information.
+
+The events in the database start in the year 1950 and end in November 2011. In recent years there are more events recorded and more complete.
+
+The analysis conclusion is that Tornado is the most harmful and damaging event type. Resources should be allocated prioritary to prepare for this event type.
+
+
+## Data processing
+Download the data file from the url provided.
+```{r cache=TRUE}
+if (!file.exists ("../files/StormData.bz2")){
+    fileUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+    download.file(fileUrl, destfile = "../files/StormData.bz2", method = "wget")
+}
+```
+
+The data come as a comma-separated-value file compressed via the bzip2 algorithm. It can be read as a csv file.
+```{r cache=TRUE}
+if (!exists("ds")){
+    ds <- read.csv("../files/StormData.bz2", stringsAsFactors = FALSE, na.strings = "")
+}
+```
+
+Check the dataset dim and vars.
+```{r}
+dim(ds)
+str(ds)
+```
+
+Convert BGN_DATE to date.
+```{r}
+ds$begin.date <- as.Date(ds$BGN_DATE, "%m/%d/%Y")
+summary(ds$begin.date)
+```
+
+Summary of event types.
+```{r}
+str(as.factor(ds$EVTYPE))
+summary(as.factor(ds$EVTYPE))
+```
+
+There are many more events types in dataset than in published table. Some cleaning applied.
+```{r}
+ds$evt <- toupper (ds$EVTYPE)
+ds$evt <- gsub("^ *| *$", "", ds$evt)
+ds$evt <- gsub(" {2,}", " ", ds$evt)
+ds$evt <- gsub(" /|/ ", "", ds$evt)
+ds$evt <- gsub("COLD$", "COLD/WIND CHILL", ds$evt)
+ds$evt <- gsub("^URBAN", "FLOOD", ds$evt)
+ds$evt <- gsub("^FLOOD(.)*", "FLOOD", ds$evt)
+ds$evt <- gsub("^HEAT(.)+", "HEAT", ds$evt)
+ds$evt <- gsub("^HIGH WIND(.)+", "HIGH WIND", ds$evt)
+ds$evt <- gsub("^HURRICANE(.)*", "HURRICANE (TYPHOON)", ds$evt)
+ds$evt <- gsub("^MARINE TSTM(.)*", "MARINE THUNDERSTORM WIND", ds$evt)
+ds$evt <- gsub("^THUNDERSTORM(.)+", "THUNDERSTORM WIND", ds$evt)
+ds$evt <- gsub("^TSTM WIND(.)*", "THUNDERSTORM WIND", ds$evt)
+ds$evt <- gsub("^WILD/(.)+", "WILDFIRE", ds$evt)
+ds$evt <- gsub("^WINTER WEATHER(.)+", "WINTER WEATHER", ds$evt)
+```
+
+Summary of event types after cleaning.
+```{r}
+summary(as.factor(ds$evt))
+```
+
+Still too many event types. It seems to be sensible to select events with frequency > 0.1%
+```{r}
+min_freq <- length(ds$evt)[1] * 0.001
+evt_freq <- tapply(ds$evt, ds$evt, length)
+events <- names(evt_freq[evt_freq > min_freq])
+table(ds$evt[ds$evt %in% events])
+```
+
+Filter the dataset with events and select cols needed for analysis.
+```{r}
+ds1 <- ds[ds$evt %in% events, c("begin.date", "evt", "FATALITIES", "INJURIES", "PROPDMG", 
+                                    "PROPDMGEXP", "CROPDMG", "CROPDMGEXP")]
+summary(ds1)
+```
+
+Check magnitudes of damages.
+```{r}
+table(ds1$PROPDMGEXP, useNA = "ifany")
+table(ds1$CROPDMGEXP, useNA = "ifany")
+```
+
+Proportion of missing values is high. Check amounts with missing magnitude.
+```{r}
+table(ds1$PROPDMG[is.na(ds1$PROPDMGEXP)])
+table(ds1$CROPDMG[is.na(ds1$CROPDMGEXP)])
+```
+Most of them are 0.
+
+Transform magnitues to figures. Million as unit.
+```{r}
+ds1$pdmg[ds1$PROPDMGEXP %in% c("k", "K")] <- 0.001
+ds1$pdmg[ds1$PROPDMGEXP %in% c("m", "M")] <- 1
+ds1$pdmg[ds1$PROPDMGEXP %in% c("b", "B")] <- 1000
+ds1$pdmg[is.na(ds1$pdmg)] <- 0
+
+ds1$cdmg[ds1$CROPDMGEXP %in% c("k", "K")] <- 0.001
+ds1$cdmg[ds1$CROPDMGEXP %in% c("m", "M")] <- 1
+ds1$cdmg[ds1$CROPDMGEXP %in% c("b", "B")] <- 1000
+ds1$cdmg[is.na(ds1$cdmg)] <- 0
+```
+
+Obtain same magnitude and total amount of damage per event.
+```{r}
+ds1$pd <- ds1$PROPDMG * ds1$pdmg
+summary(ds1$pd)
+
+ds1$cd <- ds1$CROPDMG * ds1$cdmg
+summary(ds1$cd)
+
+ds1$td <- ds1$pd + ds1$cd
+summary(ds1$td)
+
+ds1$tif <- ds1$FATALITIES + ds1$INJURIES
+
+head(ds1)
+```
+
+## Results
+Make some plots to see results.
+
+```{r echo=FALSE}
+library(ggplot2)
+````
+
+### Types of events most harmful with respect to population health across the US.
+Filter events with fatalities and injuries.
+```{r}
+ds2 <- ds1[ds1$tif > 0, c("begin.date", "evt", "FATALITIES", "INJURIES", "tif")]
+```
+
+Scatter plot.
+```{r scatter1}
+qplot(evt, tif, data = ds2, log = "y", xlab = "Event", ylab = "log(People)",
+      main = "Fatalities and injuries by event type", geom = "jitter") +
+     theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+
+The result is that Tornado is by far the most harmful event type in terms of fatalities and injuries.
+
+### Types of events that have the greatest economic consequences across the US.
+Filter events with economic consequences.
+```{r}
+ds3 <- ds1[ds1$td > 0, c("begin.date", "evt", "pd", "cd", "td")]
+```
+
+Scatter plot.
+```{r scatter2}
+qplot(evt, td, data = ds3, log = "y", xlab = "Event", ylab = "log(US$ in millions)",
+      main = "Economic damage by event type", geom = "jitter", alpha = I(1/10)) + 
+    theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+
+There is one outlier of type flood that distort the result by totals.
+```{r}
+summary(ds3$td[ds3$evt == "FLOOD"])
+ds3[ds3$td == max(ds3$td), ]
+```
+
+The result is that Tornado is the event type that causes greatest economic damage. Floods, hail and thunderstorm wind are also very damaging.
